@@ -1,3 +1,22 @@
+/*
+
+Gramática BNF del lenguaje de expresiones simples
+
+    Expr ::= Expr "+" Term
+    Expr ::= Term
+    Term ::= Term "*" Fact
+    Term ::= Fact
+    Fact ::= "int"
+    Fact ::= "(" Expr ")"
+
+Gramática LL(1) equivalente:
+
+    (1) Expr ::= Term ("+" Term)*
+    (2) Term ::= Fact ("*" Fact)*
+    (3) Fact ::= "int" | "(" Expr ")"
+
+*/
+
 using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
