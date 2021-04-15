@@ -4,8 +4,10 @@ Gramática BNF del lenguaje de expresiones simples:
 
     Expr ::= Expr "+" Term
     Expr ::= Term
-    Term ::= Term "*" Fact
-    Term ::= Fact
+    Term ::= Term "*" PowTerm
+    Term ::= PowTerm
+    PowTerm ::= Fact "**" PowTerm
+    PowTerm ::= Fact
     Fact ::= "int"
     Fact ::= "(" Expr ")"
 
@@ -13,8 +15,9 @@ Gramática LL(1) equivalente:
 
     (0) Prog ::= Expr "EOF"
     (1) Expr ::= Term ("+" Term)*
-    (2) Term ::= Fact ("*" Fact)*
-    (3) Fact ::= "int" | "(" Expr ")"
+    (2) Term ::= PowTerm ("*" PowTerm)*
+    (3) PowTerm ::= Fact ("**" PowTerm)?
+    (4) Fact ::= "int" | "(" Expr ")"
 
 */
 
@@ -23,7 +26,7 @@ using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
 public enum TokenCategory {
-    INT, PLUS, TIMES, OPEN_PAR, CLOSE_PAR, EOF, BAD_TOKEN
+    INT, PLUS, TIMES, POW, OPEN_PAR, CLOSE_PAR, EOF, BAD_TOKEN
 }
 
 public class Token {
@@ -43,7 +46,7 @@ public class Token {
 public class Scanner {
     readonly String input;
     static readonly Regex regex = new Regex(
-        @"(\d+)|([+])|([*])|([(])|([)])|(\s)|(.)");
+        @"(\d+)|([+])|([*][*])|([*])|([(])|([)])|(\s)|(.)");
 
     public Scanner(String input) {
         this.input = input;
@@ -58,14 +61,16 @@ public class Scanner {
             } else if (m.Groups[2].Success) {
                 result.AddLast(new Token(TokenCategory.PLUS, m.Value));
             } else if (m.Groups[3].Success) {
-                result.AddLast(new Token(TokenCategory.TIMES, m.Value));
+                result.AddLast(new Token(TokenCategory.POW, m.Value));
             } else if (m.Groups[4].Success) {
-                result.AddLast(new Token(TokenCategory.OPEN_PAR, m.Value));
+                result.AddLast(new Token(TokenCategory.TIMES, m.Value));
             } else if (m.Groups[5].Success) {
-                result.AddLast(new Token(TokenCategory.CLOSE_PAR, m.Value));
+                result.AddLast(new Token(TokenCategory.OPEN_PAR, m.Value));
             } else if (m.Groups[6].Success) {
-                // skip
+                result.AddLast(new Token(TokenCategory.CLOSE_PAR, m.Value));
             } else if (m.Groups[7].Success) {
+                // skip
+            } else if (m.Groups[8].Success) {
                 result.AddLast(new Token(TokenCategory.BAD_TOKEN, m.Value));
             }
         }
@@ -120,15 +125,25 @@ public class Parser {
 
     // (2)
     public int Term() {
-        var result = Fact();
+        var result = PowTerm();
         while (Current == TokenCategory.TIMES) {
             Expect(TokenCategory.TIMES);
-            result *= Fact();
+            result *= PowTerm();
         }
         return result;
     }
 
     // (3)
+    public int PowTerm() {
+        var result = Fact();
+        if (Current == TokenCategory.POW) {
+            Expect(TokenCategory.POW);
+            result = (int) Math.Pow(result, PowTerm());
+        }
+        return result;
+    }
+
+    // (4)
     public int Fact() {
         switch (Current) {
 
