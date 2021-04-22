@@ -108,61 +108,78 @@ public class Parser {
     }
 
     // (0)
-    public int Prog() {
+    public Node Prog() {
         var result = Expr();
         Expect(TokenCategory.EOF);
-        return result;
+        var newNode = new Prog();
+        newNode.Add(result);
+        return newNode;
     }
 
     // (1)
-    public int Expr() {
+    public Node Expr() {
         var result = Term();
         while (Current == TokenCategory.PLUS) {
-            Expect(TokenCategory.PLUS);
-            result += Term();
+            var token = Expect(TokenCategory.PLUS);
+            var newNode = new Plus();
+            newNode.AnchorToken = token;
+            newNode.Add(result);
+            newNode.Add(Term());
+            result = newNode;
         }
         return result;
     }
 
     // (2)
-    public int Term() {
+    public Node Term() {
         var result = PowTerm();
         while (Current == TokenCategory.TIMES) {
-            Expect(TokenCategory.TIMES);
-            result *= PowTerm();
+            var token = Expect(TokenCategory.TIMES);
+            var newNode = new Times();
+            newNode.AnchorToken = token;
+            newNode.Add(result);
+            newNode.Add(PowTerm());
+            result = newNode;
         }
         return result;
     }
 
     // (3)
-    public int PowTerm() {
+    public Node PowTerm() {
         var result = Fact();
         if (Current == TokenCategory.POW) {
-            Expect(TokenCategory.POW);
-            result = (int) Math.Pow(result, PowTerm());
+            var token = Expect(TokenCategory.POW);
+            var newNode = new Pow();
+            newNode.AnchorToken = token;
+            newNode.Add(result);
+            newNode.Add(PowTerm());
+            result = newNode;
         }
         return result;
     }
 
     // (4)
-    public int Fact() {
+    public Node Fact() {
         switch (Current) {
 
         case TokenCategory.INT:
+        {
             var token = Expect(TokenCategory.INT);
-            return Int32.Parse(token.Lexeme);
-
+            var result = new Int();
+            result.AnchorToken = token;
+            return result;
+        }
         case TokenCategory.OPEN_PAR:
+        {
             Expect(TokenCategory.OPEN_PAR);
             var result = Expr();
             Expect(TokenCategory.CLOSE_PAR);
             return result;
-
+        }
         default:
             throw new SyntaxError();
         }
     }
-
 }
 
 public class Node: IEnumerable<Node> {
@@ -210,6 +227,12 @@ public class Node: IEnumerable<Node> {
     }
 }
 
+public class Prog: Node {}
+public class Plus: Node {}
+public class Times: Node {}
+public class Pow: Node {}
+public class Int: Node {}
+
 public class Driver {
     public static void Main() {
         Console.Write("> ");
@@ -217,7 +240,7 @@ public class Driver {
         var parser = new Parser(new Scanner(line).Scan().GetEnumerator());
         try {
             var result = parser.Prog();
-            Console.WriteLine(result);
+            Console.WriteLine(result.ToStringTree());
         } catch (SyntaxError) {
             Console.WriteLine("Bad syntax!");
         }
