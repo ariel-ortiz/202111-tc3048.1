@@ -233,6 +233,99 @@ public class Times: Node {}
 public class Pow: Node {}
 public class Int: Node {}
 
+public class EvalVisitor {
+
+    public int Visit(Prog node) {
+        return Visit((dynamic) node[0]);
+    }
+
+    public int Visit(Plus node) {
+        return Visit((dynamic) node[0]) + Visit((dynamic) node[1]);
+    }
+
+    public int Visit(Times node) {
+        return Visit((dynamic) node[0]) * Visit((dynamic) node[1]);
+    }
+
+    public int Visit(Pow node) {
+        return (int) Math.Pow(Visit((dynamic) node[0]),
+                              Visit((dynamic) node[1]));
+    }
+
+    public int Visit(Int node) {
+        return Int32.Parse(node.AnchorToken.Lexeme);
+    }
+}
+
+public class LispVisitor {
+
+    public string Visit(Prog node) {
+        return Visit((dynamic) node[0]);
+    }
+
+    public string Visit(Plus node) {
+        return "(+ "
+            + Visit((dynamic) node[0])
+            + " "
+            + Visit((dynamic) node[1])
+            + ")";
+    }
+
+    public string Visit(Times node) {
+        return "(* "
+            + Visit((dynamic) node[0])
+            + " "
+            + Visit((dynamic) node[1])
+            + ")";
+    }
+
+    public string Visit(Pow node) {
+        return "(expt "
+            + Visit((dynamic) node[0])
+            + " "
+            + Visit((dynamic) node[1])
+            + ")";
+    }
+
+    public string Visit(Int node) {
+        return node.AnchorToken.Lexeme;
+    }
+}
+
+public class CVisitor {
+    public string Visit(Prog node) {
+        var r = Visit((dynamic) node[0]);
+        return $@"#include <stdio.h>
+#include <math.h>
+
+int main(void) {{
+    printf(""%d\n"", {r});
+}}";
+    }
+
+    public string Visit(Plus node) {
+        var r1 = Visit((dynamic) node[0]);
+        var r2 = Visit((dynamic) node[1]);
+        return $"({r1} + {r2})";
+    }
+
+    public string Visit(Times node) {
+        var r1 = Visit((dynamic) node[0]);
+        var r2 = Visit((dynamic) node[1]);
+        return $"({r1} * {r2})";
+    }
+
+    public string Visit(Pow node) {
+        var r1 = Visit((dynamic) node[0]);
+        var r2 = Visit((dynamic) node[1]);
+        return $"((int) pow({r1}, {r2}))";
+    }
+
+    public string Visit(Int node) {
+        return node.AnchorToken.Lexeme;
+    }
+}
+
 public class Driver {
     public static void Main() {
         Console.Write("> ");
@@ -240,7 +333,22 @@ public class Driver {
         var parser = new Parser(new Scanner(line).Scan().GetEnumerator());
         try {
             var result = parser.Prog();
-            Console.WriteLine(result.ToStringTree());
+            // Console.WriteLine(result.ToStringTree());
+            Console.WriteLine();
+
+            var num = new EvalVisitor().Visit((dynamic) result);
+            Console.Write("Evaluation: ");
+            Console.WriteLine(num);
+            Console.WriteLine();
+
+            var lispResult = new LispVisitor().Visit((dynamic) result);
+            Console.WriteLine(";; Lisp code:");
+            Console.WriteLine(lispResult);
+            Console.WriteLine();
+
+            var cResult = new CVisitor().Visit((dynamic) result);
+            Console.WriteLine("// C code:");
+            Console.WriteLine(cResult);
         } catch (SyntaxError) {
             Console.WriteLine("Bad syntax!");
         }
