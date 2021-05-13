@@ -83,6 +83,8 @@ public class Scanner {
 
 public class SyntaxError: Exception {}
 
+public class SemanticError: Exception {}
+
 public class Parser {
     IEnumerator<Token> tokenStream;
 
@@ -326,6 +328,35 @@ int main(void) {{
     }
 }
 
+public class SemanticVisitor {
+
+    public void Visit(Prog node) {
+        Visit((dynamic) node[0]);
+    }
+
+    public void Visit(Plus node) {
+        Visit((dynamic) node[0]);
+        Visit((dynamic) node[1]);
+    }
+
+    public void Visit(Times node) {
+        Visit((dynamic) node[0]);
+        Visit((dynamic) node[1]);
+    }
+
+    public void Visit(Pow node) {
+        Visit((dynamic) node[0]);
+        Visit((dynamic) node[1]);
+    }
+
+    public void Visit(Int node) {
+        int result;
+        if (!Int32.TryParse(node.AnchorToken.Lexeme, out result)) {
+            throw new SemanticError();
+        }
+    }
+}
+
 public class Driver {
     public static void Main() {
         Console.Write("> ");
@@ -334,23 +365,28 @@ public class Driver {
         try {
             var result = parser.Prog();
             // Console.WriteLine(result.ToStringTree());
-            Console.WriteLine();
+            // Console.WriteLine();
 
-            var num = new EvalVisitor().Visit((dynamic) result);
-            Console.Write("Evaluation: ");
-            Console.WriteLine(num);
-            Console.WriteLine();
+            // var num = new EvalVisitor().Visit((dynamic) result);
+            // Console.Write("Evaluation: ");
+            // Console.WriteLine(num);
+            // Console.WriteLine();
 
-            var lispResult = new LispVisitor().Visit((dynamic) result);
-            Console.WriteLine(";; Lisp code:");
-            Console.WriteLine(lispResult);
-            Console.WriteLine();
+            // var lispResult = new LispVisitor().Visit((dynamic) result);
+            // Console.WriteLine(";; Lisp code:");
+            // Console.WriteLine(lispResult);
+            // Console.WriteLine();
 
-            var cResult = new CVisitor().Visit((dynamic) result);
-            Console.WriteLine("// C code:");
-            Console.WriteLine(cResult);
+            // var cResult = new CVisitor().Visit((dynamic) result);
+            // Console.WriteLine("// C code:");
+            // Console.WriteLine(cResult);
+            new SemanticVisitor().Visit((dynamic) result);
+            Console.WriteLine("Semantics OK!");
+
         } catch (SyntaxError) {
             Console.WriteLine("Bad syntax!");
+        } catch (SemanticError) {
+            Console.WriteLine("Bad semantics!");
         }
     }
 }
