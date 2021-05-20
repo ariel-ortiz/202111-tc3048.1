@@ -24,5 +24,6 @@ def main():
 
     # Run exported function, print result
     print(instance.exports.duplicate(21))
+    print(instance.exports.times_three_plus_one(10.5))
 
 main()
