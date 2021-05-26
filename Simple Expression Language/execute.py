@@ -30,6 +30,6 @@ def create_instance(file_name):
 
 def main():
     instance = create_instance('output.wat')
-    print(instance.exports.inicio.start())
+    print(instance.exports.start())
 
 main()
