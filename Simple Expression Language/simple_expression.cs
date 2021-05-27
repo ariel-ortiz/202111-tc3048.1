@@ -23,6 +23,7 @@ Gramática LL(1) equivalente:
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -357,6 +358,44 @@ public class SemanticVisitor {
     }
 }
 
+public class WATVisitor {
+
+    public String Visit(Prog node) {
+        return
+            "(module\n"
+            + "  (import \"math\" \"pow\" (func $pow (param i32 i32) (result i32)))\n"
+            + "  (func\n"
+            + "    (export \"start\")\n"
+            + "    (result i32)\n"
+            + Visit((dynamic) node[0])
+            + "    return\n"
+            + "  )\n"
+            + ")\n";
+    }
+
+    public String Visit(Plus node) {
+        return Visit((dynamic) node[0])
+            + Visit((dynamic) node[1])
+            + "    i32.add\n";
+    }
+
+    public String Visit(Times node) {
+        return Visit((dynamic) node[0])
+            + Visit((dynamic) node[1])
+            + "    i32.mul\n";
+    }
+
+    public String Visit(Pow node) {
+        return Visit((dynamic) node[0])
+            + Visit((dynamic) node[1])
+            + "    call $pow\n";
+    }
+
+    public String Visit(Int node) {
+        return $"    i32.const {node.AnchorToken.Lexeme}\n";
+    }
+}
+
 public class Driver {
     public static void Main() {
         Console.Write("> ");
@@ -380,8 +419,11 @@ public class Driver {
             // var cResult = new CVisitor().Visit((dynamic) result);
             // Console.WriteLine("// C code:");
             // Console.WriteLine(cResult);
-            new SemanticVisitor().Visit((dynamic) result);
-            Console.WriteLine("Semantics OK!");
+            // new SemanticVisitor().Visit((dynamic) result);
+            // Console.WriteLine("Semantics OK!");
+            File.WriteAllText(
+                "output.wat",
+                new WATVisitor().Visit((dynamic) result));
 
         } catch (SyntaxError) {
             Console.WriteLine("Bad syntax!");
